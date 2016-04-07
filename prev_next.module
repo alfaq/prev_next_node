@@ -1,0 +1,84 @@
+<?php
+
+/**
+ * @file
+ * myblock.module
+ */
+//описание функции показывает этот блок в спике всех блоков
+function prev_next_block_info() {
+    // This example comes from node.module.
+    $blocks['prev_next'] = array(
+        'info' => t('Prev Next link'),
+    );
+	// This example comes from node.module.
+    $blocks['prev_next_mob'] = array(
+        'info' => t('Prev Next mob link'),
+    );
+    return $blocks;
+}
+
+/**
+ * Gets previous and next node.
+ * from https://www.drupal.org/node/37767#comment-5885656
+ */
+function node_sibling($node, $dir = 'next', $prepend_text = '', $append_text = '', $next_node_text = NULL) {
+    $query = 'SELECT n.nid, n.title FROM {node} n WHERE '
+           . 'n.created ' . ($dir == 'prev' ? '<' : '>') . ' :created AND n.type = :type AND n.status = 1 '
+           . "AND language IN (:lang, 'und') "
+           . 'ORDER BY n.created ' . ($dir == 'prev' ? 'DESC' : 'ASC') . ' LIMIT 1';
+    //use fetchObject to fetch a single row
+    $row = db_query($query, array(':created' => $node->created, ':type' => $node->type, ':lang' => $node->language))->fetchObject();
+
+  if ($row) {
+    drupal_add_html_head_link(array(
+      'rel' => $dir,
+      'type' => 'text/html',
+      'title' => $row->title,
+      // Force the URL to be absolute, for consistency with other <link> tags
+      // output by Drupal.
+      'href' => url('node/' . $row->nid, array('absolute' => TRUE)),
+    ));
+	$alias = drupal_get_path_alias('node/' . $row->nid);
+    $text = $next_node_text ? t($next_node_text) : $row->title;
+    return '<a href="'.$alias.'">'.t($prepend_text).$text.t($append_text).'</a>';
+  } else {
+    return FALSE;
+  }
+}
+
+//функция отображения блока
+function prev_next_block_view($delta = '') {
+    $block = array();
+
+    switch ($delta) {
+        case 'prev_next':
+			
+			if(arg(1)){
+				$nid = filter_xss(arg(1))*1;//current nide id
+				$node = node_load($nid);
+				if($node){
+				  if($node->type == 'article'){
+					$older = node_sibling($node, 'prev', '<span class="link-forward"><i class="fa fa-forward"></i></span>', '', 'Prev');
+					$newer = node_sibling($node, 'next', '', '<span class="link-backward"><i class="fa fa-backward"></i></span>', 'Next'); 
+					$block['content'] = '<div class="prev_next_linker">'.$older.' | '.$newer.'</div>';
+				  }
+			  }
+			}
+			
+            break;
+		case 'prev_next_mob':
+			if(arg(1)){
+				$nid = filter_xss(arg(1))*1;//current nide id
+				$node = node_load($nid);
+				if($node){
+				  if($node->type == 'article'){
+					$older = node_sibling($node, 'prev', '<span class="link-forward"><i class="fa fa-forward"></i></span>', '', 'Prev');
+					$newer = node_sibling($node, 'next', '', '<span class="link-backward"><i class="fa fa-backward"></i></span>', 'Next'); 
+					$block['content'] = '<div class="prev_next_linker">'.$older.' | '.$newer.'</div>';
+				  }
+			  }
+			}
+            break;
+    }
+    return $block;
+}
